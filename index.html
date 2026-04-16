@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>éèè²»è¨é²</title>
+<title>遊興費記録</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -23,7 +23,7 @@
   }
   header h1 { font-size: 1.2rem; font-weight: 600; letter-spacing: 0.05em; }
 
-  /* æ®é«ã«ã¼ã */
+  /* 残高カード */
   .balance-card {
     margin: 16px 16px 0;
     background: white;
@@ -75,7 +75,7 @@
   .progress-bar.warn { background: #d97706; }
   .progress-bar.over { background: #dc2626; }
 
-  /* ã»ã¯ã·ã§ã³ã¿ã¤ãã« */
+  /* セクションタイトル */
   .section-title {
     font-size: 0.75rem;
     font-weight: 600;
@@ -85,7 +85,7 @@
     padding: 20px 20px 8px;
   }
 
-  /* å¥åãã©ã¼ã  */
+  /* 入力フォーム */
   .form-card {
     margin: 0 16px;
     background: white;
@@ -128,7 +128,7 @@
   }
   .btn-add:active { opacity: 0.75; }
 
-  /* æ¯åºãªã¹ã */
+  /* 支出リスト */
   .expenses-card {
     margin: 0 16px;
     background: white;
@@ -185,7 +185,7 @@
     font-size: 0.9rem;
   }
 
-  /* äºç®è¨­å® */
+  /* 予算設定 */
   .budget-card {
     margin: 0 16px;
     background: white;
@@ -235,42 +235,42 @@
 <body>
 
 <header>
-  <h1>éèè²»è¨é²</h1>
+  <h1>遊興費記録</h1>
 </header>
 
-<!-- æ®é«ã«ã¼ã -->
+<!-- 残高カード -->
 <div class="balance-card" id="balanceCard">
-  <div class="balance-label">ä»æã®æ®ã</div>
-  <div class="balance-amount" id="balanceAmount">Â¥0</div>
+  <div class="balance-label">今月の残り</div>
+  <div class="balance-amount" id="balanceAmount">¥0</div>
   <div class="balance-sub">
-    <span>äºç® <b id="budgetLabel">æªè¨­å®</b></span>
-    <span>ä½¿ç¨ <b id="usedLabel">Â¥0</b></span>
+    <span>予算 <b id="budgetLabel">未設定</b></span>
+    <span>使用 <b id="usedLabel">¥0</b></span>
   </div>
   <div class="progress-bar-bg">
     <div class="progress-bar ok" id="progressBar" style="width:0%"></div>
   </div>
 </div>
 
-<!-- æ¯åºå¥å -->
-<div class="section-title">æ¯åºãè¿½å </div>
+<!-- 支出入力 -->
+<div class="section-title">支出を追加</div>
 <div class="form-card">
   <div class="form-row">
-    <input class="input-name" type="text" id="inputName" placeholder="äºé ï¼ä¾ï¼æ ç»ï¼" maxlength="30">
-    <input class="input-amount" type="number" id="inputAmount" placeholder="éé¡" min="1" inputmode="numeric">
+    <input class="input-name" type="text" id="inputName" placeholder="事項（例：映画）" maxlength="30">
+    <input class="input-amount" type="number" id="inputAmount" placeholder="金額" min="1" inputmode="numeric">
   </div>
-  <button class="btn-add" onclick="addExpense()">è¿½å ãã</button>
+  <button class="btn-add" onclick="addExpense()">追加する</button>
 </div>
 
-<!-- ä»æã®æ¯åºãªã¹ã -->
-<div class="section-title">ä»æã®æ¯åº</div>
+<!-- 今月の支出リスト -->
+<div class="section-title">今月の支出</div>
 <div class="expenses-card" id="expensesList"></div>
 
-<!-- äºç®è¨­å® -->
-<div class="section-title">ææ¬¡äºç®ã®è¨­å®</div>
+<!-- 予算設定 -->
+<div class="section-title">月次予算の設定</div>
 <div class="budget-card">
   <div class="budget-row">
-    <input type="number" id="budgetInput" placeholder="ä¾ï¼30000" min="1" inputmode="numeric">
-    <button class="btn-set" onclick="setBudget()">è¨­å®</button>
+    <input type="number" id="budgetInput" placeholder="例：30000" min="1" inputmode="numeric">
+    <button class="btn-set" onclick="setBudget()">設定</button>
   </div>
 </div>
 
@@ -305,7 +305,7 @@ function getBudget() {
 }
 
 function fmt(n) {
-  return 'Â¥' + Math.abs(n).toLocaleString('ja-JP');
+  return '¥' + Math.abs(n).toLocaleString('ja-JP');
 }
 
 function render() {
@@ -315,7 +315,7 @@ function render() {
   const remaining = budget - used;
   const ratio = budget > 0 ? Math.min(used / budget, 1) : 0;
 
-  // æ®é«è¡¨ç¤º
+  // 残高表示
   const amtEl = document.getElementById('balanceAmount');
   const barEl = document.getElementById('progressBar');
   let cls = 'ok';
@@ -325,7 +325,7 @@ function render() {
   }
 
   if (budget === 0) {
-    amtEl.textContent = 'äºç®æªè¨­å®';
+    amtEl.textContent = '予算未設定';
     amtEl.className = 'balance-amount';
   } else if (remaining < 0) {
     amtEl.textContent = `-${fmt(remaining)}`;
@@ -335,20 +335,20 @@ function render() {
     amtEl.className = `balance-amount ${cls}`;
   }
 
-  document.getElementById('budgetLabel').textContent = budget > 0 ? fmt(budget) : 'æªè¨­å®';
+  document.getElementById('budgetLabel').textContent = budget > 0 ? fmt(budget) : '未設定';
   document.getElementById('usedLabel').textContent = fmt(used);
   barEl.style.width = (ratio * 100) + '%';
   barEl.className = `progress-bar ${cls}`;
 
-  // äºç®å¥åæ¬
+  // 予算入力欄
   if (budget > 0) document.getElementById('budgetInput').placeholder = fmt(budget);
 
-  // æ¯åºãªã¹ãï¼æ°ããé ï¼
+  // 支出リスト（新しい順）
   const list = document.getElementById('expensesList');
   const sorted = [...month.expenses].sort((a,b) => b.ts - a.ts);
 
   if (sorted.length === 0) {
-    list.innerHTML = '<div class="empty-msg">ã¾ã æ¯åºãããã¾ãã</div>';
+    list.innerHTML = '<div class="empty-msg">まだ支出がありません</div>';
   } else {
     list.innerHTML = sorted.map(e => {
       const d = new Date(e.ts);
@@ -357,15 +357,15 @@ function render() {
         <span class="expense-date">${label}</span>
         <span class="expense-name">${escHtml(e.name)}</span>
         <span class="expense-amount">-${fmt(e.amount)}</span>
-        <button class="btn-delete" onclick="deleteExpense(${e.ts})" aria-label="åé¤">â</button>
+        <button class="btn-delete" onclick="deleteExpense(${e.ts})" aria-label="削除">✕</button>
       </div>`;
     }).join('');
   }
 
-  // æã©ãã«
+  // 月ラベル
   const ym = getYM();
   const [y, m] = ym.split('-');
-  document.getElementById('monthLabel').textContent = `${y}éºT${parseInt(m)}æ`;
+  document.getElementById('monthLabel').textContent = `${y}年${parseInt(m)}月`;
 }
 
 function escHtml(s) {
@@ -409,7 +409,7 @@ function setBudget() {
   render();
 }
 
-// Enterã­ã¼å¯¾å¿
+// Enterキー対応
 document.getElementById('inputName').addEventListener('keydown', e => {
   if (e.key === 'Enter') document.getElementById('inputAmount').focus();
 });
