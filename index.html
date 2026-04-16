@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>éèè²»è¨é²</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif;
+    background: #f0f2f5;
+    color: #1a1a2e;
+    min-height: 100vh;
+    padding-bottom: 40px;
+  }
+
+  header {
+    background: #1a1a2e;
+    color: white;
+    padding: 18px 20px 14px;
+    text-align: center;
+  }
+  header h1 { font-size: 1.2rem; font-weight: 600; letter-spacing: 0.05em; }
+
+  /* æ®é«ã«ã¼ã */
+  .balance-card {
+    margin: 16px 16px 0;
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  }
+
+  .balance-label {
+    font-size: 0.75rem;
+    color: #888;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .balance-amount {
+    font-size: 2.6rem;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .balance-amount.ok { color: #16a34a; }
+  .balance-amount.warn { color: #d97706; }
+  .balance-amount.over { color: #dc2626; }
+
+  .balance-sub {
+    font-size: 0.8rem;
+    color: #888;
+    margin-top: 8px;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .progress-bar-bg {
+    background: #e5e7eb;
+    border-radius: 8px;
+    height: 8px;
+    margin-top: 14px;
+    overflow: hidden;
+  }
+  .progress-bar {
+    height: 100%;
+    border-radius: 8px;
+    transition: width 0.4s ease;
+  }
+  .progress-bar.ok { background: #16a34a; }
+  .progress-bar.warn { background: #d97706; }
+  .progress-bar.over { background: #dc2626; }
+
+  /* ã»ã¯ã·ã§ã³ã¿ã¤ãã« */
+  .section-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #888;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 20px 20px 8px;
+  }
+
+  /* å¥åãã©ã¼ã  */
+  .form-card {
+    margin: 0 16px;
+    background: white;
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  }
+
+  .form-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .form-row input {
+    border: 1.5px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+    background: #fafafa;
+    -webkit-appearance: none;
+  }
+  .form-row input:focus { border-color: #1a1a2e; background: white; }
+  .input-name { flex: 2; }
+  .input-amount { flex: 1; min-width: 0; }
+
+  .btn-add {
+    width: 100%;
+    background: #1a1a2e;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 13px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .btn-add:active { opacity: 0.75; }
+
+  /* æ¯åºãªã¹ã */
+  .expenses-card {
+    margin: 0 16px;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    overflow: hidden;
+  }
+
+  .expense-item {
+    display: flex;
+    align-items: center;
+    padding: 14px 16px;
+    border-bottom: 1px solid #f3f4f6;
+    gap: 12px;
+  }
+  .expense-item:last-child { border-bottom: none; }
+
+  .expense-name {
+    flex: 1;
+    font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .expense-date {
+    font-size: 0.75rem;
+    color: #aaa;
+    white-space: nowrap;
+  }
+  .expense-amount {
+    font-size: 1rem;
+    font-weight: 600;
+    white-space: nowrap;
+    color: #dc2626;
+    min-width: 72px;
+    text-align: right;
+  }
+  .btn-delete {
+    background: none;
+    border: none;
+    color: #ccc;
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 4px 2px;
+    line-height: 1;
+    transition: color 0.2s;
+  }
+  .btn-delete:active { color: #dc2626; }
+
+  .empty-msg {
+    text-align: center;
+    padding: 32px 16px;
+    color: #bbb;
+    font-size: 0.9rem;
+  }
+
+  /* äºç®è¨­å® */
+  .budget-card {
+    margin: 0 16px;
+    background: white;
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  }
+  .budget-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .budget-row input {
+    flex: 1;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 11px 14px;
+    font-size: 1rem;
+    outline: none;
+    background: #fafafa;
+    -webkit-appearance: none;
+  }
+  .budget-row input:focus { border-color: #1a1a2e; background: white; }
+  .btn-set {
+    background: #6366f1;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 11px 18px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.2s;
+  }
+  .btn-set:active { opacity: 0.75; }
+
+  .month-label {
+    font-size: 0.8rem;
+    color: #888;
+    text-align: center;
+    margin-top: 24px;
+    padding-bottom: 4px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>éèè²»è¨é²</h1>
+</header>
+
+<!-- æ®é«ã«ã¼ã -->
+<div class="balance-card" id="balanceCard">
+  <div class="balance-label">ä»æã®æ®ã</div>
+  <div class="balance-amount" id="balanceAmount">Â¥0</div>
+  <div class="balance-sub">
+    <span>äºç® <b id="budgetLabel">æªè¨­å®</b></span>
+    <span>ä½¿ç¨ <b id="usedLabel">Â¥0</b></span>
+  </div>
+  <div class="progress-bar-bg">
+    <div class="progress-bar ok" id="progressBar" style="width:0%"></div>
+  </div>
+</div>
+
+<!-- æ¯åºå¥å -->
+<div class="section-title">æ¯åºãè¿½å </div>
+<div class="form-card">
+  <div class="form-row">
+    <input class="input-name" type="text" id="inputName" placeholder="äºé ï¼ä¾ï¼æ ç»ï¼" maxlength="30">
+    <input class="input-amount" type="number" id="inputAmount" placeholder="éé¡" min="1" inputmode="numeric">
+  </div>
+  <button class="btn-add" onclick="addExpense()">è¿½å ãã</button>
+</div>
+
+<!-- ä»æã®æ¯åºãªã¹ã -->
+<div class="section-title">ä»æã®æ¯åº</div>
+<div class="expenses-card" id="expensesList"></div>
+
+<!-- äºç®è¨­å® -->
+<div class="section-title">ææ¬¡äºç®ã®è¨­å®</div>
+<div class="budget-card">
+  <div class="budget-row">
+    <input type="number" id="budgetInput" placeholder="ä¾ï¼30000" min="1" inputmode="numeric">
+    <button class="btn-set" onclick="setBudget()">è¨­å®</button>
+  </div>
+</div>
+
+<div class="month-label" id="monthLabel"></div>
+
+<script>
+const STORAGE_KEY = 'yukohi_v1';
+
+function getYM() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+
+function load() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+  catch(e) { return {}; }
+}
+
+function save(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function getData() {
+  const all = load();
+  const ym = getYM();
+  if (!all[ym]) all[ym] = { expenses: [] };
+  return { all, ym, month: all[ym] };
+}
+
+function getBudget() {
+  return parseInt(load().budget || '0') || 0;
+}
+
+function fmt(n) {
+  return 'Â¥' + Math.abs(n).toLocaleString('ja-JP');
+}
+
+function render() {
+  const { month } = getData();
+  const budget = getBudget();
+  const used = month.expenses.reduce((s, e) => s + e.amount, 0);
+  const remaining = budget - used;
+  const ratio = budget > 0 ? Math.min(used / budget, 1) : 0;
+
+  // æ®é«è¡¨ç¤º
+  const amtEl = document.getElementById('balanceAmount');
+  const barEl = document.getElementById('progressBar');
+  let cls = 'ok';
+  if (budget > 0) {
+    if (ratio >= 1) cls = 'over';
+    else if (ratio >= 0.75) cls = 'warn';
+  }
+
+  if (budget === 0) {
+    amtEl.textContent = 'äºç®æªè¨­å®';
+    amtEl.className = 'balance-amount';
+  } else if (remaining < 0) {
+    amtEl.textContent = `-${fmt(remaining)}`;
+    amtEl.className = `balance-amount ${cls}`;
+  } else {
+    amtEl.textContent = fmt(remaining);
+    amtEl.className = `balance-amount ${cls}`;
+  }
+
+  document.getElementById('budgetLabel').textContent = budget > 0 ? fmt(budget) : 'æªè¨­å®';
+  document.getElementById('usedLabel').textContent = fmt(used);
+  barEl.style.width = (ratio * 100) + '%';
+  barEl.className = `progress-bar ${cls}`;
+
+  // äºç®å¥åæ¬
+  if (budget > 0) document.getElementById('budgetInput').placeholder = fmt(budget);
+
+  // æ¯åºãªã¹ãï¼æ°ããé ï¼
+  const list = document.getElementById('expensesList');
+  const sorted = [...month.expenses].sort((a,b) => b.ts - a.ts);
+
+  if (sorted.length === 0) {
+    list.innerHTML = '<div class="empty-msg">ã¾ã æ¯åºãããã¾ãã</div>';
+  } else {
+    list.innerHTML = sorted.map(e => {
+      const d = new Date(e.ts);
+      const label = `${d.getMonth()+1}/${d.getDate()}`;
+      return `<div class="expense-item">
+        <span class="expense-date">${label}</span>
+        <span class="expense-name">${escHtml(e.name)}</span>
+        <span class="expense-amount">-${fmt(e.amount)}</span>
+        <button class="btn-delete" onclick="deleteExpense(${e.ts})" aria-label="åé¤">â</button>
+      </div>`;
+    }).join('');
+  }
+
+  // æã©ãã«
+  const ym = getYM();
+  const [y, m] = ym.split('-');
+  document.getElementById('monthLabel').textContent = `${y}éºT${parseInt(m)}æ`;
+}
+
+function escHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function addExpense() {
+  const name = document.getElementById('inputName').value.trim();
+  const amountRaw = document.getElementById('inputAmount').value;
+  const amount = parseInt(amountRaw);
+
+  if (!name) { document.getElementById('inputName').focus(); return; }
+  if (!amount || amount <= 0) { document.getElementById('inputAmount').focus(); return; }
+
+  const { all, ym, month } = getData();
+  month.expenses.push({ name, amount, ts: Date.now() });
+  all[ym] = month;
+  save(all);
+
+  document.getElementById('inputName').value = '';
+  document.getElementById('inputAmount').value = '';
+  document.getElementById('inputName').focus();
+  render();
+}
+
+function deleteExpense(ts) {
+  const { all, ym, month } = getData();
+  month.expenses = month.expenses.filter(e => e.ts !== ts);
+  all[ym] = month;
+  save(all);
+  render();
+}
+
+function setBudget() {
+  const val = parseInt(document.getElementById('budgetInput').value);
+  if (!val || val <= 0) { document.getElementById('budgetInput').focus(); return; }
+  const all = load();
+  all.budget = val;
+  save(all);
+  document.getElementById('budgetInput').value = '';
+  render();
+}
+
+// Enterã­ã¼å¯¾å¿
+document.getElementById('inputName').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('inputAmount').focus();
+});
+document.getElementById('inputAmount').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addExpense();
+});
+document.getElementById('budgetInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') setBudget();
+});
+
+render();
+</script>
+</body>
+</html>
