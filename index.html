@@ -113,6 +113,12 @@
   .form-row input:focus { border-color: #1a1a2e; background: white; }
   .input-name { flex: 2; }
   .input-amount { flex: 1; min-width: 0; }
+  .input-date {
+    flex: 1;
+    min-width: 0;
+    color: #1a1a2e;
+  }
+  .input-date::-webkit-calendar-picker-indicator { opacity: 0.5; }
 
   .btn-add {
     width: 100%;
@@ -258,6 +264,9 @@
     <input class="input-name" type="text" id="inputName" placeholder="事項（例：映画）" maxlength="30">
     <input class="input-amount" type="number" id="inputAmount" placeholder="金額" min="1" inputmode="numeric">
   </div>
+  <div class="form-row">
+    <input class="input-date" type="date" id="inputDate">
+  </div>
   <button class="btn-add" onclick="addExpense()">追加する</button>
 </div>
 
@@ -345,14 +354,20 @@ function render() {
 
   // 支出リスト（新しい順）
   const list = document.getElementById('expensesList');
-  const sorted = [...month.expenses].sort((a,b) => b.ts - a.ts);
+  const sorted = [...month.expenses].sort((a,b) => {
+    const da = a.date || new Date(a.ts).toISOString().slice(0,10);
+    const db = b.date || new Date(b.ts).toISOString().slice(0,10);
+    if (db !== da) return db.localeCompare(da);
+    return b.ts - a.ts;
+  });
 
   if (sorted.length === 0) {
     list.innerHTML = '<div class="empty-msg">まだ支出がありません</div>';
   } else {
     list.innerHTML = sorted.map(e => {
-      const d = new Date(e.ts);
-      const label = `${d.getMonth()+1}/${d.getDate()}`;
+      const dateStr = e.date || new Date(e.ts).toISOString().slice(0,10);
+      const [,mm,dd] = dateStr.split('-');
+      const label = `${parseInt(mm)}/${parseInt(dd)}`;
       return `<div class="expense-item">
         <span class="expense-date">${label}</span>
         <span class="expense-name">${escHtml(e.name)}</span>
@@ -372,21 +387,30 @@ function escHtml(s) {
   return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
 function addExpense() {
   const name = document.getElementById('inputName').value.trim();
   const amountRaw = document.getElementById('inputAmount').value;
   const amount = parseInt(amountRaw);
+  const date = document.getElementById('inputDate').value || todayStr();
 
   if (!name) { document.getElementById('inputName').focus(); return; }
   if (!amount || amount <= 0) { document.getElementById('inputAmount').focus(); return; }
 
-  const { all, ym, month } = getData();
-  month.expenses.push({ name, amount, ts: Date.now() });
-  all[ym] = month;
+  // 選択した日付の月に保存
+  const ym = date.slice(0, 7);
+  const all = load();
+  if (!all[ym]) all[ym] = { expenses: [] };
+  all[ym].expenses.push({ name, amount, date, ts: Date.now() });
   save(all);
 
   document.getElementById('inputName').value = '';
   document.getElementById('inputAmount').value = '';
+  document.getElementById('inputDate').value = todayStr();
   document.getElementById('inputName').focus();
   render();
 }
@@ -420,6 +444,7 @@ document.getElementById('budgetInput').addEventListener('keydown', e => {
   if (e.key === 'Enter') setBudget();
 });
 
+document.getElementById('inputDate').value = todayStr();
 render();
 </script>
 </body>
