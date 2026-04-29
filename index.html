@@ -262,9 +262,33 @@
     transition: background 0.2s;
   }
   .btn-data:active { background: #f3f4f6; }
+
+  #lockScreen {
+    position: fixed; inset: 0; background: #1a1a2e;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    z-index: 9999;
+  }
+  #lockScreen h2 { color: white; font-size: 1.1rem; margin-bottom: 24px; letter-spacing: 0.05em; }
+  #lockInput {
+    width: 200px; padding: 14px; text-align: center; font-size: 1.5rem;
+    border: none; border-radius: 12px; letter-spacing: 0.2em;
+    margin-bottom: 14px; background: white;
+  }
+  #lockBtn {
+    width: 200px; padding: 13px; background: #6366f1; color: white;
+    border: none; border-radius: 12px; font-size: 1rem; font-weight: 600; cursor: pointer;
+  }
+  #lockError { color: #f87171; font-size: 0.85rem; margin-top: 10px; min-height: 20px; }
 </style>
 </head>
 <body>
+
+<div id="lockScreen">
+  <h2>🔒 遊興費記録</h2>
+  <input id="lockInput" type="password" inputmode="numeric" placeholder="••••" maxlength="10">
+  <button id="lockBtn" onclick="checkPassword()">開く</button>
+  <div id="lockError"></div>
+</div>
 
 <header>
   <h1>遊興費記録</h1>
@@ -511,6 +535,29 @@ function importData(event) {
 
 document.getElementById('inputDate').value = todayStr();
 render();
+
+// パスワード処理
+const PW = '8181';
+const PW_KEY = 'yukohi_unlocked';
+
+function checkPassword() {
+  const val = document.getElementById('lockInput').value;
+  if (val === PW) {
+    localStorage.setItem(PW_KEY, '1');
+    document.getElementById('lockScreen').style.display = 'none';
+  } else {
+    document.getElementById('lockError').textContent = 'パスワードが違います';
+    document.getElementById('lockInput').value = '';
+  }
+}
+
+document.getElementById('lockInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') checkPassword();
+});
+
+if (localStorage.getItem(PW_KEY) === '1') {
+  document.getElementById('lockScreen').style.display = 'none';
+}
 </script>
 </body>
 </html>
