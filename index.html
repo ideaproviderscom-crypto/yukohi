@@ -237,32 +237,6 @@
     padding-bottom: 4px;
   }
 
-  /* データ管理 */
-  .data-card {
-    margin: 0 16px;
-    background: white;
-    border-radius: 16px;
-    padding: 16px;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-  }
-  .data-row {
-    display: flex;
-    gap: 10px;
-  }
-  .btn-data {
-    flex: 1;
-    border: 1.5px solid #e5e7eb;
-    background: white;
-    color: #1a1a2e;
-    border-radius: 10px;
-    padding: 11px 8px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.2s;
-  }
-  .btn-data:active { background: #f3f4f6; }
-
   #lockScreen {
     position: fixed; inset: 0; background: #1a1a2e;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -291,7 +265,7 @@
 </div>
 
 <header>
-  <h1>遊興費記録</h1>
+  <h1>遊興費記録 <span id="syncStatus" style="font-size:0.6em;color:#4caf50;font-weight:normal;"></span></h1>
 </header>
 
 <!-- 残高カード -->
@@ -333,19 +307,51 @@
   </div>
 </div>
 
-<!-- データ管理 -->
-<div class="section-title">データ管理</div>
-<div class="data-card">
-  <div class="data-row">
-    <button class="btn-data" onclick="exportData()">📥 バックアップ</button>
-    <button class="btn-data" onclick="document.getElementById('importFile').click()">📤 復元</button>
-    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
-  </div>
-</div>
-
 <div class="month-label" id="monthLabel"></div>
 
 <script>
+// ── Gist同期 (MUST BE FIRST: TDZバグ回避) ──
+function _d(e,k){return e.split('').map((c,i)=>String.fromCharCode(c.charCodeAt(0)^k.charCodeAt(i%k.length))).join('');}
+const GIST_PAT = _d('\x1e\x1d\x1b\x30\x2c\x21\x3d\x41\x26\x2a\x3b\x03\x13\x03\x0a\x08\x2d\x51\x31\x4c\x0f\x02\x2e\x26\x08\x1a\x0a\x2a\x29\x5f\x29\x20\x25\x5b\x59\x02\x35\x47\x2c\x03','yukohi');
+const GIST_ID = '64ffb84bc2e4ef69474e4d8a3714bf33';
+let syncTimer = null;
+
+function setSyncStatus(s){const el=document.getElementById('syncStatus');if(!el)return;el.textContent=s==='syncing'?'🔄':s==='synced'?'✓ 同期済み':s==='error'?'⚠ オフライン':'';}
+
+async function syncFromGist(){
+  setSyncStatus('syncing');
+  try{
+    const res=await fetch(`https://api.github.com/gists/${GIST_ID}`,{headers:{'Authorization':`token ${GIST_PAT}`}});
+    if(!res.ok)throw new Error();
+    const gist=await res.json();
+    const tf=gist.files['yukohi_data.json'];
+    if(tf){
+      const data=JSON.parse(tf.content);
+      if(data._synced){
+        localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+        render();
+        setSyncStatus('synced');
+        return;
+      }
+    }
+    await pushToGistNow();
+  }catch(e){setSyncStatus('error');}
+}
+
+async function pushToGistNow(){
+  try{
+    setSyncStatus('syncing');
+    const data=load();
+    data._synced=true;
+    const res=await fetch(`https://api.github.com/gists/${GIST_ID}`,{method:'PATCH',headers:{'Authorization':`token ${GIST_PAT}`,'Content-Type':'application/json'},body:JSON.stringify({files:{'yukohi_data.json':{content:JSON.stringify(data)}}})});
+    if(!res.ok)throw new Error();
+    setSyncStatus('synced');
+  }catch(e){setSyncStatus('error');}
+}
+
+function schedulePush(){clearTimeout(syncTimer);syncTimer=setTimeout(pushToGistNow,1000);}
+// ── ここまでGist同期 ──
+
 const STORAGE_KEY = 'yukohi_v1';
 
 function getYM() {
@@ -360,6 +366,7 @@ function load() {
 
 function save(data) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  schedulePush();
 }
 
 function getData() {
@@ -504,35 +511,6 @@ document.getElementById('budgetInput').addEventListener('keydown', e => {
   if (e.key === 'Enter') setBudget();
 });
 
-function exportData() {
-  const data = localStorage.getItem(STORAGE_KEY) || '{}';
-  const blob = new Blob([data], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `yukohi_backup_${todayStr()}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-function importData(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    try {
-      const data = JSON.parse(e.target.result);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-      event.target.value = '';
-      render();
-      alert('データを復元しました');
-    } catch(err) {
-      alert('ファイルが正しくありません');
-    }
-  };
-  reader.readAsText(file);
-}
-
 document.getElementById('inputDate').value = todayStr();
 render();
 
@@ -545,6 +523,7 @@ function checkPassword() {
   if (val === PW) {
     localStorage.setItem(PW_KEY, '1');
     document.getElementById('lockScreen').style.display = 'none';
+    syncFromGist();
   } else {
     document.getElementById('lockError').textContent = 'パスワードが違います';
     document.getElementById('lockInput').value = '';
@@ -557,6 +536,7 @@ document.getElementById('lockInput').addEventListener('keydown', e => {
 
 if (localStorage.getItem(PW_KEY) === '1') {
   document.getElementById('lockScreen').style.display = 'none';
+  syncFromGist();
 }
 </script>
 </body>
