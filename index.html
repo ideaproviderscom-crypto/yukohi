@@ -297,8 +297,18 @@ function _d(e,k){return e.split('').map((c,i)=>String.fromCharCode(c.charCodeAt(
 const GIST_PAT = _d('\x1e\x1d\x1b\x30\x2c\x21\x3d\x41\x26\x2a\x3b\x03\x13\x03\x0a\x08\x2d\x51\x31\x4c\x0f\x02\x2e\x26\x08\x1a\x0a\x2a\x29\x5f\x29\x20\x25\x5b\x59\x02\x35\x47\x2c\x03','yukohi');
 const GIST_ID = '64ffb84bc2e4ef69474e4d8a3714bf33';
 let syncTimer = null;
+let syncFailCount = 0;
 
-function setSyncStatus(s){const el=document.getElementById('syncStatus');if(!el)return;el.textContent=s==='syncing'?'🔄':s==='synced'?'✓ 同期済み':s==='error'?'⚠ オフライン':'';}
+function setSyncStatus(s){
+  const el=document.getElementById('syncStatus');if(!el)return;
+  if(s==='syncing'){el.textContent='🔄';el.style.color='#4caf50';}
+  else if(s==='synced'){el.textContent='✓ 同期済み';el.style.color='#4caf50';syncFailCount=0;}
+  else if(s==='error'){
+    syncFailCount++;
+    if(syncFailCount>=3){el.textContent='⚠️ 同期失敗。データ未保存の可能性あり';el.style.color='#ff4444';el.style.fontSize='0.75em';}
+    else{el.textContent='⚠ オフライン';el.style.color='#ff9800';}
+  }
+}
 
 async function syncFromGist(){
   setSyncStatus('syncing');
@@ -308,9 +318,18 @@ async function syncFromGist(){
     const gist=await res.json();
     const tf=gist.files['yukohi_data.json'];
     if(tf){
-      const data=JSON.parse(tf.content);
-      if(data._synced){
-        localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+      const gistData=JSON.parse(tf.content);
+      if(gistData._synced){
+        const localRaw=localStorage.getItem(STORAGE_KEY);
+        const localData=localRaw?JSON.parse(localRaw):null;
+        // ローカルが新しければGistに上げて返す
+        if(localData?._lastModified && gistData._lastModified &&
+           localData._lastModified > gistData._lastModified){
+          await pushToGistNow(); return;
+        }
+        // バックアップしてから上書き
+        if(localRaw) localStorage.setItem(STORAGE_KEY+'_backup', localRaw);
+        localStorage.setItem(STORAGE_KEY,JSON.stringify(gistData));
         render();
         setSyncStatus('synced');
         return;
@@ -325,6 +344,7 @@ async function pushToGistNow(){
     setSyncStatus('syncing');
     const data=load();
     data._synced=true;
+    data._lastModified=data._lastModified||Date.now();
     const res=await fetch(`https://api.github.com/gists/${GIST_ID}`,{method:'PATCH',headers:{'Authorization':`token ${GIST_PAT}`,'Content-Type':'application/json'},body:JSON.stringify({files:{'yukohi_data.json':{content:JSON.stringify(data)}}})});
     if(!res.ok)throw new Error();
     setSyncStatus('synced');
@@ -347,6 +367,7 @@ function load() {
 }
 
 function save(data) {
+  data._lastModified = Date.now();
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   schedulePush();
 }
