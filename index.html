@@ -240,6 +240,41 @@
     padding-bottom: 4px;
   }
 
+  /* 月ナビゲーション */
+  .month-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 14px 20px 10px;
+  }
+  .month-nav-label {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1a1a2e;
+    min-width: 100px;
+    text-align: center;
+  }
+  .btn-month {
+    background: #1a1a2e;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    width: 36px;
+    height: 36px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.2s;
+  }
+  .btn-month:disabled {
+    background: #ccc;
+    cursor: default;
+  }
+  .btn-month:not(:disabled):active { opacity: 0.7; }
+
 </style>
 </head>
 <body>
@@ -250,9 +285,16 @@
   <h1>遊興費記録 <span id="syncStatus" style="font-size:0.6em;color:#4caf50;font-weight:normal;"></span></h1>
 </header>
 
+<!-- 月ナビゲーション -->
+<div class="month-nav">
+  <button class="btn-month" id="btnPrevMonth" onclick="changeMonth(-1)">&#9664;</button>
+  <div class="month-nav-label" id="monthNavLabel"></div>
+  <button class="btn-month" id="btnNextMonth" onclick="changeMonth(1)">&#9654;</button>
+</div>
+
 <!-- 残高カード -->
 <div class="balance-card" id="balanceCard">
-  <div class="balance-label">今月の残り</div>
+  <div class="balance-label" id="balanceLabel">今月の残り</div>
   <div class="balance-amount" id="balanceAmount">¥0</div>
   <div class="balance-sub">
     <span>予算 <b id="budgetLabel">未設定</b></span>
@@ -276,8 +318,8 @@
   <button class="btn-add" onclick="addExpense()">追加する</button>
 </div>
 
-<!-- 今月の支出リスト -->
-<div class="section-title">今月の支出</div>
+<!-- 支出リスト -->
+<div class="section-title" id="expensesTitle">今月の支出</div>
 <div class="expenses-card" id="expensesList"></div>
 
 <!-- 予算設定 -->
@@ -361,6 +403,19 @@ function getYM() {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
 }
 
+// 表示中の月（YYYY-MM形式）。初期値は今月
+let currentYM = getYM();
+
+function changeMonth(delta) {
+  const [y, m] = currentYM.split('-').map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  const newYM = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  // 今月より先には行けない
+  if (newYM > getYM()) return;
+  currentYM = newYM;
+  render();
+}
+
 function load() {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
   catch(e) { return {}; }
@@ -374,7 +429,7 @@ function save(data) {
 
 function getData() {
   const all = load();
-  const ym = getYM();
+  const ym = currentYM;
   if (!all[ym]) all[ym] = { expenses: [] };
   return { all, ym, month: all[ym] };
 }
@@ -447,10 +502,26 @@ function render() {
     }).join('');
   }
 
-  // 月ラベル
-  const ym = getYM();
-  const [y, m] = ym.split('-');
-  document.getElementById('monthLabel').textContent = `${y}年${parseInt(m)}月`;
+  // セクションタイトル・残高ラベル・月ナビを月に合わせて更新
+  const isCurrentMonth = currentYM === getYM();
+  const [navY, navM] = currentYM.split('-');
+  const navLabel = `${navY}年${parseInt(navM)}月`;
+  const titleEl = document.getElementById('expensesTitle');
+  if (titleEl) titleEl.textContent = isCurrentMonth ? '今月の支出' : `${navLabel}の支出`;
+  const labelEl = document.getElementById('balanceLabel');
+  if (labelEl) labelEl.textContent = isCurrentMonth ? '今月の残り' : `${navLabel}の残り`;
+  document.getElementById('monthNavLabel').textContent = navLabel;
+  document.getElementById('monthLabel').textContent = navLabel;
+  // 今月なら「次へ」ボタンを無効化
+  document.getElementById('btnNextMonth').disabled = (currentYM >= getYM());
+  // 最古データがあれば「前へ」ボタンも制御（データなし月でも1年前まで遡れる）
+  const earliestYM = (() => {
+    const all = load();
+    const months = Object.keys(all).filter(k => /^\d{4}-\d{2}$/.test(k) && all[k].expenses && all[k].expenses.length > 0);
+    return months.length > 0 ? months.sort()[0] : currentYM;
+  })();
+  // 最古月の1ヶ月前まで遡れる（最古月自体は表示できるように）
+  document.getElementById('btnPrevMonth').disabled = (currentYM < earliestYM);
 }
 
 function escHtml(s) {
@@ -482,6 +553,8 @@ function addExpense() {
   document.getElementById('inputAmount').value = '';
   document.getElementById('inputDate').value = todayStr();
   document.getElementById('inputName').focus();
+  // 追加した月を表示
+  currentYM = ym;
   render();
 }
 
